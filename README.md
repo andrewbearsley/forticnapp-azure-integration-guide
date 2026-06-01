@@ -39,8 +39,7 @@ Azure Landing Zone (ALZ) deployments typically use **tenant-level** because new 
 | Subscription IDs in scope | `az account list --query "[].{id:id, name:name}" -o table` |
 | Management group ID (tenant-level only) | `az account management-group list -o table` |
 | Default deployment region | Operational standard (e.g. `australiaeast`) |
-| Permission delegation model | Confirm: can you create app registrations + role assignments at management-group scope yourself, or is it gated by a platform team? |
-| Compliance frameworks expected | CIS, PCI, HIPAA, NIST, ISO 27001, SOC 2, plus any custom mapping required |
+| Permission delegation model | Confirm what you can do yourself versus what needs the platform team. **Path A**: create App Registrations, assign Owner on the target subscription, assign Application Administrator + Privileged Role Administrator to the SP in Entra ID. **Path B**: Owner or User Access Administrator at the deployment scope (subscription or management group), Application Administrator in Entra ID, write access to diagnostic settings on monitored subscriptions. |
 
 ### Step 1.3: Choose your integration path
 
