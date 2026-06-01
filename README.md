@@ -51,7 +51,7 @@ Azure Landing Zone (ALZ) deployments typically use **tenant-level** because new 
 | Deployment tenant restricts Privileged Role Administrator (common in corporate) | **Path B (Terraform)**: apply-time delegation easier to arrange |
 | Single-subscription deployment with full admin rights | **Path A (Console wizard)** |
 
-Most production enterprise deployments land on Path B. Path A is documented below for completeness and POC scenarios.
+Most production enterprise deployments land on Path B. Path A is documented below for completeness and single-subscription scenarios.
 
 ### Step 1.4: Path A, Console wizard
 
@@ -240,7 +240,7 @@ Agentless workload scanning provides VM-level CVE detection without installing a
 
 Two ways to deploy:
 
-- **Via the Step 1 wizard**: tick **Agentless Workload Scanning** on Step 1 and provide regions + monitored subscription IDs on Step 2. The wizard deploys a default agentless setup using FortiCNAPP-managed defaults for VNet, NAT, and scheduling. Good for POCs and standard environments.
+- **Via the Step 1 wizard**: tick **Agentless Workload Scanning** on Step 1 and provide regions + monitored subscription IDs on Step 2. The wizard deploys a default agentless setup using FortiCNAPP-managed defaults for VNet, NAT, and scheduling. Good for single-subscription and standard environments.
 - **Via the sibling repository**: for production deployments that need custom VNet/subnet, existing NAT, Azure Policy DENY-exempt configurations, or full IaC control:
 
 <a href="https://github.com/andrewbearsley/forticnapp-azure-agentless-workload-scanning-guide" target="_blank">forticnapp-azure-agentless-workload-scanning-guide</a>
