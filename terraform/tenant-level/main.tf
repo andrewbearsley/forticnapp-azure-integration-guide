@@ -45,3 +45,11 @@ module "az_activity_log" {
   use_existing_ad_application           = true
   use_storage_account_network_rules     = true
 }
+
+module "az_dspm" {
+  source                   = "lacework/dspm/azure"
+  version                  = "~> 0.2"
+  regions                  = var.dspm_regions
+  scanning_subscription_id = var.subscription_id
+  integration_level        = "TENANT"
+}

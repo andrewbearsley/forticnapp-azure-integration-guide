@@ -1,15 +1,18 @@
 # Tenant-level Azure integration
 
-Deploys the FortiCNAPP Config (CSPM) and Activity Log integrations against an Azure management group, covering every subscription beneath it. Default choice for Azure Landing Zone deployments because newly-added subscriptions are picked up automatically.
+Deploys the FortiCNAPP Config (CSPM), Activity Log, and DSPM integrations against an Azure management group, covering every subscription beneath it in one `terraform apply`. Default choice for Azure Landing Zone deployments because newly-added subscriptions are picked up automatically.
 
-Generated from `lacework generate cloud-account azure --configuration --activity_log --management_group --management_group_id <mg> --all_subscriptions --subscription_id <deployment-sub>` and committed with values extracted as variables.
+Generated from `lacework generate cloud-account azure --configuration --activity_log --management_group --management_group_id <mg> --all_subscriptions --subscription_id <deployment-sub>`, committed with values extracted as variables, and extended with the `lacework/dspm/azure` module (TENANT level) for DSPM.
 
 ## What this deploys
 
 - One Azure AD application granted Reader at the specified management group (cascades to all child subscriptions)
 - One Storage Account + Event Hub in the deployment subscription
 - Diagnostic settings on every subscription under the management group, exporting Activity Log events to the central Event Hub
-- Two FortiCNAPP cloud-account integrations (Config + Activity Log), bound to the AD application
+- Three FortiCNAPP cloud-account integrations (Config + Activity Log + DSPM), bound to the AD application
+- DSPM scanning infrastructure (Key Vault, Storage Account, Container App Job) deployed per region listed in `dspm_regions`, scoped at the TENANT integration level
+
+To skip DSPM, remove the `module "az_dspm"` block from `main.tf` and the `dspm_regions` variable from `variables.tf` before applying.
 
 ## Prerequisites
 

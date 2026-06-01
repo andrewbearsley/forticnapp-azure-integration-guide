@@ -1,15 +1,18 @@
 # Subscription-level Azure integration
 
-Deploys the FortiCNAPP Config (CSPM) and Activity Log integrations against a single Azure subscription.
+Deploys the FortiCNAPP Config (CSPM), Activity Log, and DSPM integrations against a single Azure subscription in one `terraform apply`.
 
-Generated from `lacework generate cloud-account azure --configuration --activity_log --subscription_id <sub>` and committed with values extracted as variables.
+Generated from `lacework generate cloud-account azure --configuration --activity_log --subscription_id <sub>`, committed with values extracted as variables, and extended with the `lacework/dspm/azure` module for DSPM.
 
 ## What this deploys
 
 - One Azure AD application (service principal) granted Reader on the subscription
 - One Storage Account + Event Hub in the same subscription for Activity Log forwarding
 - Diagnostic setting on the subscription's Activity Log, exporting events to the Event Hub
-- Two FortiCNAPP cloud-account integrations (Config + Activity Log), bound to the AD application
+- Three FortiCNAPP cloud-account integrations (Config + Activity Log + DSPM), bound to the AD application
+- DSPM scanning infrastructure (Key Vault, Storage Account, Container App Job) deployed per region listed in `dspm_regions`
+
+To skip DSPM, remove the `module "az_dspm"` block from `main.tf` and the `dspm_regions` variable from `variables.tf` before applying.
 
 ## Prerequisites
 

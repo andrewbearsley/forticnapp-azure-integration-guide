@@ -278,18 +278,34 @@ Tick **Agentless Workload Scanning** in the Step 1 wizard and provide regions + 
 
 DSPM discovers and classifies sensitive data across Azure Storage Accounts and blob containers. Findings are joined to the broader risk view so a misconfigured storage account containing PII is prioritised above one containing logs.
 
-### Setup
+Common to both paths:
 
-DSPM is enabled per Azure cloud-account integration once Step 1 is in place.
+- DSPM scanning infrastructure (Key Vault, Storage Account, Container App Job) is deployed per region you specify
+- The DSPM service principal needs Storage Blob Data Reader on the subscriptions in scope, which the deployment provisions automatically
+- First-pass classification typically completes within 24 hours of enablement for typical-sized environments
 
-1. In the FortiCNAPP console, navigate to **Settings → Integrations → Cloud Accounts**
+### Step 3: Path A, Terraform
+
+DSPM is already wired into the committed Terraform variants via the `lacework/dspm/azure` module. Set `dspm_regions` in your `terraform.tfvars` and apply the same configuration as Step 1, in a single `terraform apply`. No second deployment is needed.
+
+```hcl
+dspm_regions = ["australiaeast"]
+```
+
+If you only ran Step 1 earlier and want to add DSPM now, set `dspm_regions` and re-run `terraform apply` against the same configuration.
+
+Reference: <a href="https://registry.terraform.io/modules/lacework/dspm/azure/latest" target="_blank">lacework/dspm/azure</a>
+
+### Step 3: Path B, Console wizard
+
+If you deployed Step 1 via the console wizard, enable DSPM on the existing integration record:
+
+1. **Settings → Integrations → Cloud Accounts**
 2. Open the Azure integration created in Step 1
-3. Enable **DSPM** on the integration
-4. The integration's service principal needs additional read access to Storage Account data planes. The wizard provisions this; for Terraform-deployed integrations, re-apply with the DSPM flag enabled
+3. Enable **DSPM** on the integration and provide the scanning regions
+4. The wizard deploys the DSPM scanning infrastructure and assigns the additional Storage Blob Data Reader roles
 
-DSPM scans run on a configurable schedule. First-pass classification typically completes within 24 hours of enablement for typical-sized environments.
-
-Reference: <a href="https://docs.fortinet.com/document/forticnapp/latest/administration-guide" target="_blank">FortiCNAPP Administration Guide: DSPM</a>
+Reference: <a href="https://docs.fortinet.com/document/forticnapp/latest/administration-guide/923035/integrating-dspm-scanning-with-your-azure-cloud-accounts" target="_blank">FortiCNAPP Administration Guide: Integrating DSPM with Azure</a>
 
 ---
 
@@ -430,5 +446,6 @@ Once Step 1 + Step 2 data is present, FortiCNAPP automatically constructs attack
 - <a href="https://registry.terraform.io/modules/lacework/ad-application/azure/latest" target="_blank">Terraform Registry: lacework/ad-application/azure</a>
 - <a href="https://registry.terraform.io/modules/lacework/config/azure/latest" target="_blank">Terraform Registry: lacework/config/azure</a>
 - <a href="https://registry.terraform.io/modules/lacework/activity-log/azure/latest" target="_blank">Terraform Registry: lacework/activity-log/azure</a>
+- <a href="https://registry.terraform.io/modules/lacework/dspm/azure/latest" target="_blank">Terraform Registry: lacework/dspm/azure</a>
 - <a href="https://registry.terraform.io/modules/lacework/agentless-scanning/azure/latest" target="_blank">Terraform Registry: lacework/agentless-scanning/azure</a>
 - <a href="https://github.com/andrewbearsley/forticnapp-azure-agentless-workload-scanning-guide" target="_blank">Sibling guide: Azure Agentless Workload Scanning</a>
