@@ -23,7 +23,7 @@ The principal running `terraform apply` needs:
 
 - **Owner** or **User Access Administrator** at the **management group** scope (to create the management-group-scoped role assignment that grants the AD application Reader across all child subscriptions)
 - **Contributor** or higher on the deployment subscription (to create the Storage Account + Event Hub)
-- Permission to write diagnostic settings on every subscription under the management group (Reader is insufficient — Contributor or a custom role with `Microsoft.Insights/diagnosticSettings/write` works)
+- Permission to write diagnostic settings on every subscription under the management group (Reader is insufficient. Contributor or a custom role with `Microsoft.Insights/diagnosticSettings/write` works)
 - **Application Administrator** in Entra ID (to create the AD application), or if running as a service principal, the `Application.ReadWrite.OwnedBy` Microsoft Graph permission
 
 Tenant-level deployment usually needs Global Administrator or a platform team to delegate management-group permissions. Confirm the delegation path before scheduling the apply.
