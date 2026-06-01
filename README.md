@@ -26,8 +26,8 @@ The core integration is the prerequisite for everything else. It deploys an Azur
 
 ### Step 1.1: Decide integration level
 
-- **Tenant-level**: monitors every subscription under a chosen Azure management group; single integration record; needs management-group-scoped permissions; auto-includes new subscriptions added under that scope. **Path B (Terraform) only**: the console wizard's Automated method does not offer tenant-level Config + Activity Log.
-- **Subscription-level**: monitors one specific subscription; subscription-scoped permissions; one integration record per subscription. Available via both Path A (Console wizard) and Path B (Terraform).
+- **Tenant-level**: monitors every subscription under a chosen Azure management group; single integration record; needs management-group-scoped permissions; auto-includes new subscriptions added under that scope. Available via Path B (Terraform).
+- **Subscription-level**: monitors one specific subscription; subscription-scoped permissions; one integration record per subscription. Available via Path A (Console wizard) or Path B (Terraform).
 
 Azure Landing Zone (ALZ) deployments typically use **tenant-level** because new subscriptions are added regularly under platform/workload management groups and tenant scope picks them up automatically.
 
@@ -47,7 +47,7 @@ Azure Landing Zone (ALZ) deployments typically use **tenant-level** because new 
 | Scenario | Path |
 |---|---|
 | Enterprise / regulated environment with IaC-mandated delivery | **Path B (Terraform)** |
-| ALZ / tenant-level integration covering multiple subscriptions | **Path B (Terraform)**: wizard cannot do tenant-level |
+| ALZ / tenant-level integration covering multiple subscriptions | **Path B (Terraform)** |
 | Deployment tenant restricts Privileged Role Administrator (common in corporate) | **Path B (Terraform)**: apply-time delegation easier to arrange |
 | POC or single-subscription deployment with full admin rights | Either path, wizard is faster |
 | Team has no Terraform tooling and wants a console-driven setup | **Path A (Console wizard)** |
