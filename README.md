@@ -50,7 +50,6 @@ Azure Landing Zone (ALZ) deployments typically use **tenant-level** because new 
 | ALZ / tenant-level integration covering multiple subscriptions | **Path B (Terraform)** |
 | Deployment tenant restricts Privileged Role Administrator (common in corporate) | **Path B (Terraform)**: apply-time delegation easier to arrange |
 | POC or single-subscription deployment with full admin rights | Either path, wizard is faster |
-| Team has no Terraform tooling and wants a console-driven setup | **Path A (Console wizard)** |
 
 Most production enterprise deployments land on Path B. Path A is documented below for completeness and POC scenarios.
 
