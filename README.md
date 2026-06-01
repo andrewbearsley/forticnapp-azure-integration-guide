@@ -331,15 +331,15 @@ Reference: <a href="https://docs.fortinet.com/document/forticnapp/latest/adminis
 |---|---|---|
 | CSPM (continuous misconfig detection) | Step 1 (Config) | All subscriptions under the integration scope |
 | CIEM (identity over-privilege) | Step 1 (Config) | Cloud-only Entra ID supported, PIM-gated roles respected |
-| Attack Path Analysis | Step 1 (Config) + Step 2 (Agentless) | Multi-hop combining misconfig + identity + CVE + network |
 | Compliance reporting | Step 1 (Config) | CIS, PCI, HIPAA, NIST, ISO 27001, SOC 2 out of the box. Custom frameworks supported. |
+| DSPM | Step 1 (DSPM) | Storage Accounts + blob containers, deployed alongside Config + Activity Log |
+| Secrets detection (blob storage) | Step 1 (DSPM) | Bundled into the Step 1 integration |
+| Attack Path Analysis | Step 1 (Config) + Step 2 (Agentless) | Multi-hop combining misconfig + identity + CVE + network |
 | VM CVE scanning | Step 2 (Agentless) | Includes stopped/offline VMs via disk snapshot |
 | Secrets detection (disk) | Step 2 (Agentless) | Part of the agentless scanning job |
-| Secrets detection (blob storage) | Step 1 (DSPM) | Bundled into the Step 1 integration |
-| DSPM | Step 1 (DSPM) | Storage Accounts + blob containers, deployed alongside Config + Activity Log |
 | FortiGate exposure context | Step 3 (FortiGate) | Network reachability enriches risk scores |
-| Unified risk console | All steps | Single portal consolidates findings from every source |
 | SIEM forwarding | Step 4 (Alert channels) | Splunk, ServiceNow, Teams, email, webhooks |
+| Unified risk console | All steps | Single portal consolidates findings from every source |
 
 ---
 
