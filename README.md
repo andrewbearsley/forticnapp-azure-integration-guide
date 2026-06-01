@@ -16,7 +16,7 @@ Once integrated, FortiCNAPP delivers:
 - Unified risk console consolidating findings from every source
 - Outbound alert forwarding to Splunk, ServiceNow, Teams, email, and webhooks
 
-The setup is organised into 5 steps. Most teams start with Step 1 (core integration) and add the rest as needed. Each step is independently deployable.
+The setup is organised into 4 steps. Most teams start with Step 1 (core integration, which now bundles CSPM, Activity Log, and DSPM) and add the rest as needed. Each step is independently deployable.
 
 ---
 
@@ -69,7 +69,7 @@ Most production enterprise deployments land on Path A. Path B is documented belo
 
 ### Step 1.4: Path A, Terraform
 
-Direct Terraform deployment using the `lacework/config/azure`, `lacework/activity-log/azure`, and `lacework/ad-application/azure` modules. The standard path for enterprise and regulated environments. The Path B wizard runs the same modules internally.
+Direct Terraform deployment using the `lacework/config/azure`, `lacework/activity-log/azure`, `lacework/ad-application/azure`, and `lacework/dspm/azure` modules. The standard path for enterprise and regulated environments. The Path B wizard runs the Config + Activity Log modules internally; DSPM via Path B is enabled separately on the integration record after the wizard completes.
 
 Use this path for:
 
@@ -237,8 +237,9 @@ Then assign the two Entra directory roles to the SP. Portal is fastest: **Micros
 
 - **Activity Log and Configuration are scoped to the SP's single subscription.** There is no management-group (tenant-level) option for these integrations in the Automated wizard. For tenant-level Config + Activity Log, use **Path A** with the `--management_group` flag.
 - Agentless can span multiple subscriptions via the Step 1 toggle and the Monitored Subscription IDs field on Step 2.
+- DSPM is not offered as a checkbox on Step 1 of the wizard. Enable it after the wizard completes by opening the Azure integration record under **Settings → Integrations → Cloud Accounts**, toggling **DSPM** on, and providing the scanning regions.
 
-Reference: <a href="https://docs.fortinet.com/document/forticnapp/latest/administration-guide/729300/integrating-your-azure-environment" target="_blank">Integrating your Azure environment</a>
+Reference: <a href="https://docs.fortinet.com/document/forticnapp/latest/administration-guide/729300/integrating-your-azure-environment" target="_blank">Integrating your Azure environment</a> · <a href="https://docs.fortinet.com/document/forticnapp/latest/administration-guide/923035/integrating-dspm-scanning-with-your-azure-cloud-accounts" target="_blank">Integrating DSPM with Azure</a>
 
 ### Step 1.6: Verify
 
@@ -274,42 +275,7 @@ Tick **Agentless Workload Scanning** in the Step 1 wizard and provide regions + 
 
 ---
 
-## Step 3: Data Security Posture Management (DSPM)
-
-DSPM discovers and classifies sensitive data across Azure Storage Accounts and blob containers. Findings are joined to the broader risk view so a misconfigured storage account containing PII is prioritised above one containing logs.
-
-Common to both paths:
-
-- DSPM scanning infrastructure (Key Vault, Storage Account, Container App Job) is deployed per region you specify
-- The DSPM service principal needs Storage Blob Data Reader on the subscriptions in scope, which the deployment provisions automatically
-- First-pass classification typically completes within 24 hours of enablement for typical-sized environments
-
-### Step 3: Path A, Terraform
-
-DSPM is already wired into the committed Terraform variants via the `lacework/dspm/azure` module. Set `dspm_regions` in your `terraform.tfvars` and apply the same configuration as Step 1, in a single `terraform apply`. No second deployment is needed.
-
-```hcl
-dspm_regions = ["australiaeast"]
-```
-
-If you only ran Step 1 earlier and want to add DSPM now, set `dspm_regions` and re-run `terraform apply` against the same configuration.
-
-Reference: <a href="https://registry.terraform.io/modules/lacework/dspm/azure/latest" target="_blank">lacework/dspm/azure</a>
-
-### Step 3: Path B, Console wizard
-
-If you deployed Step 1 via the console wizard, enable DSPM on the existing integration record:
-
-1. **Settings → Integrations → Cloud Accounts**
-2. Open the Azure integration created in Step 1
-3. Enable **DSPM** on the integration and provide the scanning regions
-4. The wizard deploys the DSPM scanning infrastructure and assigns the additional Storage Blob Data Reader roles
-
-Reference: <a href="https://docs.fortinet.com/document/forticnapp/latest/administration-guide/923035/integrating-dspm-scanning-with-your-azure-cloud-accounts" target="_blank">FortiCNAPP Administration Guide: Integrating DSPM with Azure</a>
-
----
-
-## Step 4: FortiGate Security Fabric Integration
+## Step 3: FortiGate Security Fabric Integration
 
 FortiGate integration enriches workload risk scoring with network exposure context. A workload that's reachable from the internet through the FortiGate gets a higher score than one behind allow-list-only rules, even if both have the same CVE.
 
@@ -336,7 +302,7 @@ Reference: <a href="https://docs.fortinet.com/document/forticnapp/latest/adminis
 
 ---
 
-## Step 5: Alert Channels
+## Step 4: Alert Channels
 
 Alert channels forward FortiCNAPP-generated alerts to downstream tools (Splunk, ServiceNow, Microsoft Teams, email, generic webhooks). Common pattern for SIEM forwarding: route to Splunk via an Azure Event Hub.
 
@@ -369,11 +335,11 @@ Reference: <a href="https://docs.fortinet.com/document/forticnapp/latest/adminis
 | Compliance reporting | Step 1 (Config) | CIS, PCI, HIPAA, NIST, ISO 27001, SOC 2 out of the box. Custom frameworks supported. |
 | VM CVE scanning | Step 2 (Agentless) | Includes stopped/offline VMs via disk snapshot |
 | Secrets detection (disk) | Step 2 (Agentless) | Part of the agentless scanning job |
-| Secrets detection (blob storage) | Step 3 (DSPM) | Enabled per Azure integration |
-| DSPM | Step 3 (DSPM) | Storage Accounts + blob containers |
-| FortiGate exposure context | Step 4 (FortiGate) | Network reachability enriches risk scores |
+| Secrets detection (blob storage) | Step 1 (DSPM) | Bundled into the Step 1 integration |
+| DSPM | Step 1 (DSPM) | Storage Accounts + blob containers, deployed alongside Config + Activity Log |
+| FortiGate exposure context | Step 3 (FortiGate) | Network reachability enriches risk scores |
 | Unified risk console | All steps | Single portal consolidates findings from every source |
-| SIEM forwarding | Step 5 (Alert channels) | Splunk, ServiceNow, Teams, email, webhooks |
+| SIEM forwarding | Step 4 (Alert channels) | Splunk, ServiceNow, Teams, email, webhooks |
 
 ---
 
