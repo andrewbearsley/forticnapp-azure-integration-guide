@@ -57,7 +57,7 @@ The created AD application is granted:
 
 ## Verify
 
-Console: **Settings → Integrations → Cloud Accounts**. Status flips to **Success** once Config has enumerated the subscription and Activity Log is receiving events. First compliance evaluation populates within 1-2 hours.
+Console: **Settings > Integrations > Cloud Accounts**. Status flips to **Success** once Config has enumerated the subscription and Activity Log is receiving events. First compliance evaluation populates within 1-2 hours.
 
 ## References
 

@@ -194,7 +194,7 @@ az ad sp credential reset --id <APP_ID> \
   --end-date "$(date -v +6H -u +'%Y-%m-%dT%H:%M:%SZ')"
 ```
 
-Then assign the two Entra directory roles to the SP. Portal is fastest: **Microsoft Entra ID → Roles and administrators →** search **Application Administrator →** Add assignments → search for the SP. Repeat for **Privileged Role Administrator**.
+Then assign the two Entra directory roles to the SP. Portal is fastest: **Microsoft Entra ID > Roles and administrators >** search **Application Administrator >** Add assignments > search for the SP. Repeat for **Privileged Role Administrator**.
 
 **Gotcha:** corporate tenants commonly block this step. Assigning directory roles requires you to hold **Privileged Role Administrator** or **Global Administrator** yourself in the deployment tenant. In production corporate environments this is usually restricted to a small IT admin team. If `Add assignments` is greyed out, you have three choices:
 
@@ -205,9 +205,9 @@ Then assign the two Entra directory roles to the SP. Portal is fastest: **Micros
 #### Wizard flow
 
 1. Log in to your FortiCNAPP account using one of these methods:
-   - **Via FortiCloud**: Services → Show More → Lacework FortiCNAPP
+   - **Via FortiCloud**: Services > Show More > Lacework FortiCNAPP
    - **Direct login**: `https://<account>.lacework.net`
-2. **Settings → Integrations → Cloud Accounts → + Add New**
+2. **Settings > Integrations > Cloud Accounts > + Add New**
 
    ![Cloud Accounts page with Add New](screenshots/wizard-01-cloud-accounts.png)
 
@@ -237,13 +237,13 @@ Then assign the two Entra directory roles to the SP. Portal is fastest: **Micros
 
 - **Activity Log and Configuration are scoped to the SP's single subscription.** There is no management-group (tenant-level) option for these integrations in the Automated wizard. For tenant-level Config + Activity Log, use **Path A** with the `--management_group` flag.
 - Agentless can span multiple subscriptions via the Step 1 toggle and the Monitored Subscription IDs field on Step 2.
-- DSPM is not offered as a checkbox on Step 1 of the wizard. Enable it after the wizard completes by opening the Azure integration record under **Settings → Integrations → Cloud Accounts**, toggling **DSPM** on, and providing the scanning regions.
+- DSPM is not offered as a checkbox on Step 1 of the wizard. Enable it after the wizard completes by opening the Azure integration record under **Settings > Integrations > Cloud Accounts**, toggling **DSPM** on, and providing the scanning regions.
 
 Reference: <a href="https://docs.fortinet.com/document/forticnapp/latest/administration-guide/729300/integrating-your-azure-environment" target="_blank">Integrating your Azure environment</a> · <a href="https://docs.fortinet.com/document/forticnapp/latest/administration-guide/923035/integrating-dspm-scanning-with-your-azure-cloud-accounts" target="_blank">Integrating DSPM with Azure</a>
 
 ### Step 1.6: Verify
 
-In the FortiCNAPP console, navigate to **Settings → Integrations → Cloud Accounts**. The Azure integration status displays as **Success** when Config has enumerated subscriptions and Activity Log is receiving events. Allow 1-2 hours for the first compliance evaluation to populate.
+In the FortiCNAPP console, navigate to **Settings > Integrations > Cloud Accounts**. The Azure integration status displays as **Success** when Config has enumerated subscriptions and Activity Log is receiving events. Allow 1-2 hours for the first compliance evaluation to populate.
 
 Reference: <a href="https://registry.terraform.io/modules/lacework/config/azure/latest" target="_blank">lacework/config/azure</a> · <a href="https://registry.terraform.io/modules/lacework/activity-log/azure/latest" target="_blank">lacework/activity-log/azure</a>
 
@@ -287,11 +287,11 @@ This is a two-sided configuration:
 
 - Confirm FortiGate firmware version meets the minimum for FortiCNAPP integration
 - Enable Fabric Connector or API access for FortiCNAPP to query FortiGate state
-- The integration can run direct (FortiCNAPP ↔ FortiGate) or via FortiAnalyzer / FortiManager as intermediary, depending on the deployment
+- The integration can run direct (FortiCNAPP to FortiGate) or via FortiAnalyzer / FortiManager as intermediary, depending on the deployment
 
 #### FortiCNAPP side
 
-1. Navigate to **Settings → Integrations**
+1. Navigate to **Settings > Integrations**
 2. Add a **FortiGate** integration
 3. Provide FortiGate management URL and authentication credentials
 4. Confirm reachability (FortiCNAPP needs outbound access to the FortiGate management interface)
@@ -308,11 +308,11 @@ Alert channels forward FortiCNAPP-generated alerts to downstream tools (Splunk, 
 
 ### Setup
 
-1. Navigate to **Settings → Notifications → Alert Channels**
+1. Navigate to **Settings > Notifications > Alert Channels**
 2. Click **Add New** and choose the target channel type
 3. Provide endpoint details (Splunk HEC URL + token, Event Hub connection string, webhook URL, etc.)
 4. Test the channel
-5. Navigate to **Settings → Notifications → Alert Rules** and bind the channel to alert rules, typically by severity threshold, integration source, or resource group
+5. Navigate to **Settings > Notifications > Alert Rules** and bind the channel to alert rules, typically by severity threshold, integration source, or resource group
 
 Splunk via Event Hub example:
 
@@ -327,7 +327,7 @@ Reference: <a href="https://docs.fortinet.com/document/forticnapp/latest/adminis
 
 ## Capability Coverage Matrix
 
-| Capability | Source phase | Notes |
+| Capability | Source step | Notes |
 |---|---|---|
 | CSPM (continuous misconfig detection) | Step 1 (Config) | All subscriptions under the integration scope |
 | CIEM (identity over-privilege) | Step 1 (Config) | Cloud-only Entra ID supported, PIM-gated roles respected |
@@ -386,14 +386,14 @@ For Azure Policy DENY environments (common in ALZ deployments, e.g. DENY on publ
 1. An Azure AD application (service principal) is created with read-only permissions across monitored subscriptions
 2. FortiCNAPP polls Azure ARM APIs continuously to enumerate resources and configurations
 3. Resource state is evaluated against active compliance frameworks
-4. Misconfigurations surface as policy violations under **Compliance → Resources** and **Reports**
+4. Misconfigurations surface as policy violations under **Compliance > Resources** and **Reports**
 
 ### Step 1 (Activity Log): Process
 
 1. A diagnostic setting is created on each monitored subscription, exporting Activity Log events to a customer-side Event Hub or Storage Account
 2. FortiCNAPP pulls events at regular intervals
 3. Events are normalised and used to build the **Polygraph** behavioural baseline, joined with Config posture data
-4. Anomalous activity, known malicious threats, and resource-change events surface under **Events → Cloud Activity** and feed composite alerts
+4. Anomalous activity, known malicious threats, and resource-change events surface under **Events > Cloud Activity** and feed composite alerts
 
 ### Step 2 (Agentless): Process
 

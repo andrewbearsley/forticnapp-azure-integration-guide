@@ -41,9 +41,9 @@ lacework version
 Before configuring the CLI, you need to create an API key:
 
 1. Log in to your FortiCNAPP account using one of these methods:
-   - **Via FortiCloud**: Go to Services → Show More → Lacework FortiCNAPP
+   - **Via FortiCloud**: Go to Services > Show More > Lacework FortiCNAPP
    - **Direct login**: https://<your-account>.lacework.net
-2. Navigate to Settings → API Keys
+2. Navigate to Settings > API Keys
 3. Click "Create New" to generate a new API key
 4. Copy the following values:
    - Account name (e.g., `your-account`)

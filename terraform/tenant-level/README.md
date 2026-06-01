@@ -65,7 +65,7 @@ New subscriptions added under the management group after deployment are picked u
 
 ## Verify
 
-Console: **Settings → Integrations → Cloud Accounts**. Status flips to **Success** once Config has enumerated subscriptions under the management group and Activity Log is receiving events. First compliance evaluation populates within 1-2 hours.
+Console: **Settings > Integrations > Cloud Accounts**. Status flips to **Success** once Config has enumerated subscriptions under the management group and Activity Log is receiving events. First compliance evaluation populates within 1-2 hours.
 
 ## References
 
