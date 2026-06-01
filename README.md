@@ -252,23 +252,25 @@ Reference: <a href="https://registry.terraform.io/modules/lacework/config/azure/
 
 Agentless workload scanning provides VM-level CVE detection without installing agents. It scans both running and stopped VMs by snapshotting and analysing disk contents in a customer-controlled scanning subscription.
 
-Two ways to deploy:
-
-- **Via the Step 1 wizard**: tick **Agentless Workload Scanning** on Step 1 and provide regions + monitored subscription IDs on Step 2. The wizard deploys a default agentless setup using FortiCNAPP-managed defaults for VNet, NAT, and scheduling. Good for single-subscription and standard environments.
-- **Via the sibling repository**: for production deployments that need custom VNet/subnet, existing NAT, Azure Policy DENY-exempt configurations, or full IaC control:
-
-<a href="https://github.com/andrewbearsley/forticnapp-azure-agentless-workload-scanning-guide" target="_blank">forticnapp-azure-agentless-workload-scanning-guide</a>
-
-Key points to bring into a broader Azure integration plan:
+Common to both paths:
 
 - Deploys per-region. Each Azure region where you have VMs needs its own regional module
 - Uses an hourly scheduled Container App Job as orchestrator; spins up ephemeral scanning VMs per scan cycle
 - Requires a dedicated **scanning subscription** with compute and storage capacity
 - Default deployment uses a NAT Gateway + Public IP for outbound traffic. In environments with Azure Policy DENY on public IP creation, request an exemption scoped to the scanning subscription only (the public IP is on the egress NAT, not on scanning VMs)
-- Supports bringing your own VNet and subnet instead of creating new ones
 - Secrets-on-disk detection is part of the same scanning job
 
+### Step 2: Path A, Terraform
+
+Full IaC control via the dedicated agentless deployment guide, which covers custom VNet/subnet, existing NAT reuse, Azure Policy DENY exemptions, and multi-region rollout patterns:
+
+<a href="https://github.com/andrewbearsley/forticnapp-azure-agentless-workload-scanning-guide" target="_blank">forticnapp-azure-agentless-workload-scanning-guide</a>
+
 Reference: <a href="https://registry.terraform.io/modules/lacework/agentless-scanning/azure/latest" target="_blank">lacework/agentless-scanning/azure</a>
+
+### Step 2: Path B, Console wizard
+
+Tick **Agentless Workload Scanning** in the Step 1 wizard and provide regions + monitored subscription IDs on Step 2 of the wizard. The wizard deploys a default agentless setup using FortiCNAPP-managed defaults for VNet, NAT, and scheduling. Good for single-subscription and standard environments.
 
 ---
 
