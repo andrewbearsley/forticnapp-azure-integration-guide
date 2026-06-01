@@ -39,7 +39,22 @@ Azure Landing Zone (ALZ) deployments typically use **tenant-level** because new 
 | Subscription IDs in scope | `az account list --query "[].{id:id, name:name}" -o table` |
 | Management group ID (tenant-level only) | `az account management-group list -o table` |
 | Default deployment region | Operational standard (e.g. `australiaeast`) |
-| Permission delegation model | Confirm what you can do yourself versus what needs the platform team. **Path A**: Owner or User Access Administrator at the deployment scope (subscription or management group), Application Administrator in Entra ID, write access to diagnostic settings on monitored subscriptions. **Path B**: create App Registrations, assign Owner on the target subscription, assign Application Administrator + Privileged Role Administrator to the SP in Entra ID. |
+
+#### Permission delegation model
+
+Confirm what you can do yourself versus what needs the platform team.
+
+**Path A (Terraform)** needs:
+
+- Owner or User Access Administrator at the deployment scope (subscription or management group)
+- Application Administrator in Entra ID
+- Write access to diagnostic settings on monitored subscriptions
+
+**Path B (Console wizard)** needs:
+
+- Ability to create App Registrations
+- Owner on the target subscription
+- Application Administrator + Privileged Role Administrator on the SP in Entra ID
 
 ### Step 1.3: Choose your integration path
 
@@ -59,7 +74,7 @@ Direct Terraform deployment using the `lacework/config/azure`, `lacework/activit
 Use this path for:
 
 - **Enterprise / IaC-mandated delivery**: version-controlled, code-reviewable, repeatable
-- **Tenant-level Config + Activity Log**: Path B's wizard does not support management-group scope
+- **Tenant-level Config + Activity Log**: Terraform supports management-group scope
 - **Restricted deployment tenants**: apply-time RBAC delegation is easier to arrange than console-driven directory role assignment
 
 #### Prerequisites
