@@ -26,8 +26,8 @@ The core integration is the prerequisite for everything else. It deploys an Azur
 
 ### Step 1.1: Decide integration level
 
-- **Tenant-level**: monitors every subscription under a chosen Azure management group; single integration record; needs management-group-scoped permissions; auto-includes new subscriptions added under that scope. Available via Path B (Terraform).
-- **Subscription-level**: monitors one specific subscription; subscription-scoped permissions; one integration record per subscription. Available via Path A (Console wizard) or Path B (Terraform).
+- **Tenant-level**: monitors every subscription under a chosen Azure management group; single integration record; needs management-group-scoped permissions; auto-includes new subscriptions added under that scope. Available via Path A (Terraform).
+- **Subscription-level**: monitors one specific subscription; subscription-scoped permissions; one integration record per subscription. Available via Path A (Terraform) or Path B (Console wizard).
 
 Azure Landing Zone (ALZ) deployments typically use **tenant-level** because new subscriptions are added regularly under platform/workload management groups and tenant scope picks them up automatically.
 
@@ -39,117 +39,27 @@ Azure Landing Zone (ALZ) deployments typically use **tenant-level** because new 
 | Subscription IDs in scope | `az account list --query "[].{id:id, name:name}" -o table` |
 | Management group ID (tenant-level only) | `az account management-group list -o table` |
 | Default deployment region | Operational standard (e.g. `australiaeast`) |
-| Permission delegation model | Confirm what you can do yourself versus what needs the platform team. **Path A**: create App Registrations, assign Owner on the target subscription, assign Application Administrator + Privileged Role Administrator to the SP in Entra ID. **Path B**: Owner or User Access Administrator at the deployment scope (subscription or management group), Application Administrator in Entra ID, write access to diagnostic settings on monitored subscriptions. |
+| Permission delegation model | Confirm what you can do yourself versus what needs the platform team. **Path A**: Owner or User Access Administrator at the deployment scope (subscription or management group), Application Administrator in Entra ID, write access to diagnostic settings on monitored subscriptions. **Path B**: create App Registrations, assign Owner on the target subscription, assign Application Administrator + Privileged Role Administrator to the SP in Entra ID. |
 
 ### Step 1.3: Choose your integration path
 
 | Scenario | Path |
 |---|---|
-| Enterprise / regulated environment with IaC-mandated delivery | **Path B (Terraform)** |
-| ALZ / tenant-level integration covering multiple subscriptions | **Path B (Terraform)** |
-| Deployment tenant restricts Privileged Role Administrator (common in corporate) | **Path B (Terraform)**: apply-time delegation easier to arrange |
-| Single-subscription deployment with full admin rights | **Path A (Console wizard)** |
+| Enterprise / regulated environment with IaC-mandated delivery | **Path A (Terraform)** |
+| ALZ / tenant-level integration covering multiple subscriptions | **Path A (Terraform)** |
+| Deployment tenant restricts Privileged Role Administrator (common in corporate) | **Path A (Terraform)**: apply-time delegation easier to arrange |
+| Single-subscription deployment with full admin rights | **Path B (Console wizard)** |
 
-Most production enterprise deployments land on Path B. Path A is documented below for completeness and single-subscription scenarios.
+Most production enterprise deployments land on Path A. Path B is documented below for completeness and single-subscription scenarios.
 
-### Step 1.4: Path A, Console wizard
+### Step 1.4: Path A, Terraform
 
-The wizard runs Terraform under the hood (the same modules used in Path B). It bundles app registration, role assignment, Storage Account + Event Hub creation, Activity Log diagnostic setting, and the FortiCNAPP integration into a two-step UI.
-
-The wizard offers three methods, surfaced on Step 1:
-
-| Method | What it does | Time |
-|---|---|---|
-| **Automated** (recommended) | Runs Terraform via a privileged SP you pre-create. Console executes the apply. | 5-10 min |
-| **Guided** | Generates a `lacework generate` CLI command you copy and run locally. | 10 min |
-| **Manual** | For environments with pre-existing AD app + resources you want to point the integration at. | 30 min |
-
-The rest of this section covers the Automated method. For Guided, the generated command is the same shape as Path B Option 2 below. For Manual, follow the in-wizard prompts.
-
-#### Prerequisites for the Automated method
-
-1. <a href="INSTALL-AZURE-CLI.md">Azure CLI</a> logged in via `az login`
-2. An Azure App Registration (service principal) with:
-   - **Owner** role on the target subscription
-   - **Application Administrator** + **Privileged Role Administrator** in Entra ID (on the deployment tenant). assigned to the SP
-
-Create the SP with one command:
-
-```bash
-az ad sp create-for-rbac \
-  --name "fcnapp-wizard" \
-  --role Owner \
-  --scopes /subscriptions/<SUB_ID>
-```
-
-Capture `appId`, `password`, and `tenant` from the JSON output. These become the wizard's Client ID, Client Secret, and Tenant ID.
-
-Tighten the credential lifetime to a few hours (the wizard only needs them for the duration of the integration run):
-
-```bash
-# Linux / WSL (GNU date)
-az ad sp credential reset --id <APP_ID> \
-  --end-date "$(date -d '+6 hour' -u +'%Y-%m-%dT%H:%M:%SZ')"
-
-# macOS (BSD date)
-az ad sp credential reset --id <APP_ID> \
-  --end-date "$(date -v +6H -u +'%Y-%m-%dT%H:%M:%SZ')"
-```
-
-Then assign the two Entra directory roles to the SP. Portal is fastest: **Microsoft Entra ID → Roles and administrators →** search **Application Administrator →** Add assignments → search for the SP. Repeat for **Privileged Role Administrator**.
-
-**Gotcha:** corporate tenants commonly block this step. Assigning directory roles requires you to hold **Privileged Role Administrator** or **Global Administrator** yourself in the deployment tenant. In production corporate environments this is usually restricted to a small IT admin team. If `Add assignments` is greyed out, you have three choices:
-
-- Ask IT to grant the SP those directory roles on your behalf
-- Ask IT for a short-term Privileged Role Administrator assignment for yourself (via PIM if the tenant uses it)
-- Switch to **Path B (Terraform)**: the apply needs the same permissions, but apply-time delegation is usually easier to arrange than console-driven role assignment
-
-#### Wizard flow
-
-1. Log in to your FortiCNAPP account using one of these methods:
-   - **Via FortiCloud**: Services → Show More → Lacework FortiCNAPP
-   - **Direct login**: `https://<account>.lacework.net`
-2. **Settings → Integrations → Cloud Accounts → + Add New**
-
-   ![Cloud Accounts page with Add New](screenshots/wizard-01-cloud-accounts.png)
-
-3. Choose **Microsoft Azure**, select **Automated configuration**, click **Next**
-
-   ![Select method - Microsoft Azure with three method options](screenshots/wizard-02-select-method.png)
-
-4. On Step 1 of 2:
-   - Tick the integrations you need: **Agentless Workload Scanning**, **Activity Log**, **Configuration** (any combination)
-   - Paste the four SP values: Client ID, Client Secret, Subscription ID, Tenant ID
-   - Optionally tick **Enable tenant level integration for Agentless** if you want Agentless to cover multiple subscriptions
-   - **Next**
-
-   ![Step 1 of 2 - integration checkboxes and credentials form](screenshots/wizard-03-step1-form.png)
-
-5. On Step 2 of 2 (Discovery Summary): the wizard authenticates as the SP and shows Caller object/principal/tenant IDs, IsAdmin status, and the list of regions it can see. Each enabled integration shows **Ready to integrate**.
-6. Configure each integration:
-   - **Activity Log** and **Configuration** scope automatically to the SP's subscription. No input required
-   - **Agentless**: select the Azure regions for the scanning infrastructure, and list the Monitored Subscription IDs (comma-separated)
-
-   ![Step 2 of 2 - Discovery Summary and per-integration configuration](screenshots/wizard-04-step2.png)
-
-7. Click **Integrate**. The wizard runs Terraform; failures roll back automatically.
-8. Wait for the initial sync (typically 15-60 minutes for first-time Config evaluation).
-
-#### Wizard scope limits
-
-- **Activity Log and Configuration are scoped to the SP's single subscription.** There is no management-group (tenant-level) option for these integrations in the Automated wizard. For tenant-level Config + Activity Log, use **Path B** with the `--management_group` flag.
-- Agentless can span multiple subscriptions via the Step 1 toggle and the Monitored Subscription IDs field on Step 2.
-
-Reference: <a href="https://docs.fortinet.com/document/forticnapp/latest/administration-guide/729300/integrating-your-azure-environment" target="_blank">Integrating your Azure environment</a>
-
-### Step 1.5: Path B, Terraform
-
-The same mechanism the wizard runs internally. Terraform applies the `lacework/config/azure`, `lacework/activity-log/azure`, and `lacework/ad-application/azure` modules. The standard path for enterprise and regulated environments.
+Direct Terraform deployment using the `lacework/config/azure`, `lacework/activity-log/azure`, and `lacework/ad-application/azure` modules. The standard path for enterprise and regulated environments. The Path B wizard runs the same modules internally.
 
 Use this path for:
 
 - **Enterprise / IaC-mandated delivery**: version-controlled, code-reviewable, repeatable
-- **Tenant-level Config + Activity Log**: Path A's wizard does not support management-group scope
+- **Tenant-level Config + Activity Log**: Path B's wizard does not support management-group scope
 - **Restricted deployment tenants**: apply-time RBAC delegation is easier to arrange than console-driven directory role assignment
 
 #### Prerequisites
@@ -224,6 +134,96 @@ terraform apply
 ```
 
 Reference: <a href="https://docs.fortinet.com/document/forticnapp/latest/cli-reference/635459/lacework-generate-cloud-account-azure" target="_blank">lacework generate cloud-account azure</a>
+
+### Step 1.5: Path B, Console wizard
+
+The wizard runs Terraform under the hood (the same modules used in Path A). It bundles app registration, role assignment, Storage Account + Event Hub creation, Activity Log diagnostic setting, and the FortiCNAPP integration into a two-step UI.
+
+The wizard offers three methods, surfaced on Step 1:
+
+| Method | What it does | Time |
+|---|---|---|
+| **Automated** (recommended) | Runs Terraform via a privileged SP you pre-create. Console executes the apply. | 5-10 min |
+| **Guided** | Generates a `lacework generate` CLI command you copy and run locally. | 10 min |
+| **Manual** | For environments with pre-existing AD app + resources you want to point the integration at. | 30 min |
+
+The rest of this section covers the Automated method. For Guided, the generated command is the same shape as Path A Option 2 above. For Manual, follow the in-wizard prompts.
+
+#### Prerequisites for the Automated method
+
+1. <a href="INSTALL-AZURE-CLI.md">Azure CLI</a> logged in via `az login`
+2. An Azure App Registration (service principal) with:
+   - **Owner** role on the target subscription
+   - **Application Administrator** + **Privileged Role Administrator** in Entra ID (on the deployment tenant), assigned to the SP
+
+Create the SP with one command:
+
+```bash
+az ad sp create-for-rbac \
+  --name "fcnapp-wizard" \
+  --role Owner \
+  --scopes /subscriptions/<SUB_ID>
+```
+
+Capture `appId`, `password`, and `tenant` from the JSON output. These become the wizard's Client ID, Client Secret, and Tenant ID.
+
+Tighten the credential lifetime to a few hours (the wizard only needs them for the duration of the integration run):
+
+```bash
+# Linux / WSL (GNU date)
+az ad sp credential reset --id <APP_ID> \
+  --end-date "$(date -d '+6 hour' -u +'%Y-%m-%dT%H:%M:%SZ')"
+
+# macOS (BSD date)
+az ad sp credential reset --id <APP_ID> \
+  --end-date "$(date -v +6H -u +'%Y-%m-%dT%H:%M:%SZ')"
+```
+
+Then assign the two Entra directory roles to the SP. Portal is fastest: **Microsoft Entra ID → Roles and administrators →** search **Application Administrator →** Add assignments → search for the SP. Repeat for **Privileged Role Administrator**.
+
+**Gotcha:** corporate tenants commonly block this step. Assigning directory roles requires you to hold **Privileged Role Administrator** or **Global Administrator** yourself in the deployment tenant. In production corporate environments this is usually restricted to a small IT admin team. If `Add assignments` is greyed out, you have three choices:
+
+- Ask IT to grant the SP those directory roles on your behalf
+- Ask IT for a short-term Privileged Role Administrator assignment for yourself (via PIM if the tenant uses it)
+- Switch to **Path A (Terraform)**: the apply needs the same permissions, but apply-time delegation is usually easier to arrange than console-driven role assignment
+
+#### Wizard flow
+
+1. Log in to your FortiCNAPP account using one of these methods:
+   - **Via FortiCloud**: Services → Show More → Lacework FortiCNAPP
+   - **Direct login**: `https://<account>.lacework.net`
+2. **Settings → Integrations → Cloud Accounts → + Add New**
+
+   ![Cloud Accounts page with Add New](screenshots/wizard-01-cloud-accounts.png)
+
+3. Choose **Microsoft Azure**, select **Automated configuration**, click **Next**
+
+   ![Select method - Microsoft Azure with three method options](screenshots/wizard-02-select-method.png)
+
+4. On Step 1 of 2:
+   - Tick the integrations you need: **Agentless Workload Scanning**, **Activity Log**, **Configuration** (any combination)
+   - Paste the four SP values: Client ID, Client Secret, Subscription ID, Tenant ID
+   - Optionally tick **Enable tenant level integration for Agentless** if you want Agentless to cover multiple subscriptions
+   - **Next**
+
+   ![Step 1 of 2 - integration checkboxes and credentials form](screenshots/wizard-03-step1-form.png)
+
+5. On Step 2 of 2 (Discovery Summary): the wizard authenticates as the SP and shows Caller object/principal/tenant IDs, IsAdmin status, and the list of regions it can see. Each enabled integration shows **Ready to integrate**.
+6. Configure each integration:
+   - **Activity Log** and **Configuration** scope automatically to the SP's subscription. No input required
+   - **Agentless**: select the Azure regions for the scanning infrastructure, and list the Monitored Subscription IDs (comma-separated)
+
+   ![Step 2 of 2 - Discovery Summary and per-integration configuration](screenshots/wizard-04-step2.png)
+
+7. Click **Integrate**. The wizard runs Terraform; failures roll back automatically.
+8. Wait for the initial sync (typically 15-60 minutes for first-time Config evaluation).
+
+#### Wizard scope limits
+
+- **Activity Log and Configuration are scoped to the SP's single subscription.** There is no management-group (tenant-level) option for these integrations in the Automated wizard. For tenant-level Config + Activity Log, use **Path A** with the `--management_group` flag.
+- Agentless can span multiple subscriptions via the Step 1 toggle and the Monitored Subscription IDs field on Step 2.
+
+Reference: <a href="https://docs.fortinet.com/document/forticnapp/latest/administration-guide/729300/integrating-your-azure-environment" target="_blank">Integrating your Azure environment</a>
 
 ### Step 1.6: Verify
 
@@ -350,14 +350,7 @@ Reference: <a href="https://docs.fortinet.com/document/forticnapp/latest/adminis
 
 Provisioning the integration requires permissions to create Azure AD applications and role assignments, plus Storage Account / Event Hub for Activity Log sinks. Specifics vary by path.
 
-**Path A (Console wizard, Automated method)**: the wizard SP needs:
-
-- **Owner** on the target subscription (for resource creation + role assignment)
-- **Application Administrator** + **Privileged Role Administrator** in Entra ID, assigned to the SP itself
-
-The human assigning those directory roles to the SP must hold **Privileged Role Administrator** or **Global Administrator** in the deployment tenant. In corporate environments this is typically restricted to a small IT admin team. Coordinate ahead of time or use Path B.
-
-**Path B (Terraform)**: the principal running `terraform apply` needs:
+**Path A (Terraform)**: the principal running `terraform apply` needs:
 
 - **Owner** or **User Access Administrator** at the deployment scope (subscription for subscription-level, management group for tenant-level)
 - **Application Administrator** in Entra ID (to create the AD application)
@@ -365,13 +358,20 @@ The human assigning those directory roles to the SP must hold **Privileged Role 
 
 Running Terraform as a service principal instead of a user: the same RBAC at the deployment scope, plus `Microsoft.Graph/Application.ReadWrite.OwnedBy` API permission in Entra ID instead of Application Administrator.
 
+**Path B (Console wizard, Automated method)**: the wizard SP needs:
+
+- **Owner** on the target subscription (for resource creation + role assignment)
+- **Application Administrator** + **Privileged Role Administrator** in Entra ID, assigned to the SP itself
+
+The human assigning those directory roles to the SP must hold **Privileged Role Administrator** or **Global Administrator** in the deployment tenant. In corporate environments this is typically restricted to a small IT admin team. Coordinate ahead of time or use Path A.
+
 For agentless workload scanning specifically, see the sibling guide's <a href="https://github.com/andrewbearsley/forticnapp-azure-agentless-workload-scanning-guide#iam-permissions" target="_blank">IAM Permissions section</a>.
 
 ### Runtime permissions
 
 The created Azure AD application is granted:
 
-- **Reader** at the tenant management group (tenant-level) or subscription (subscription-level). for Config reads
+- **Reader** at the tenant management group (tenant-level) or subscription (subscription-level), for Config reads
 - **Reader** on the Activity Log sink resource, for event pulls
 - Additional data-plane reads on Storage Accounts if DSPM is enabled
 - No write permissions on monitored resources
