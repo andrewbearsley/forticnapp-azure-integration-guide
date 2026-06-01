@@ -2,7 +2,17 @@
 
 Deploys the FortiCNAPP Config (CSPM), Activity Log, and DSPM integrations against an Azure management group, covering every subscription beneath it in one `terraform apply`. Default choice for Azure Landing Zone deployments because newly-added subscriptions are picked up automatically.
 
-Generated from `lacework generate cloud-account azure --configuration --activity_log --management_group --management_group_id <mg> --all_subscriptions --subscription_id <deployment-sub>`, committed with values extracted as variables, and extended with the `lacework/dspm/azure` module (TENANT level) for DSPM.
+Generated from the `lacework generate cloud-account azure` command below, committed with values extracted as variables, and extended with the `lacework/dspm/azure` module (TENANT level) for DSPM:
+
+```bash
+lacework generate cloud-account azure \
+  --configuration \
+  --activity_log \
+  --management_group \
+  --management_group_id <mg> \
+  --all_subscriptions \
+  --subscription_id <deployment-sub>
+```
 
 ## What this deploys
 
