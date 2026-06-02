@@ -345,37 +345,80 @@ Reference: <a href="https://docs.fortinet.com/document/forticnapp/latest/adminis
 
 ## IAM Permissions Summary
 
-### Deployment-time permissions
+Provisioning the integration requires creating Azure AD applications, role assignments, and Storage Account / Event Hub resources for the Activity Log sink. The most common enterprise shape is Path A tenant-level covering Core + DSPM + Agentless, broken down below. Path B (Console wizard) is a different shape and covered separately.
 
-Provisioning the integration requires permissions to create Azure AD applications and role assignments, plus Storage Account / Event Hub for Activity Log sinks. Specifics vary by path.
+### Path A tenant-level: PIM pattern (recommended)
 
-**Path A (Terraform)**: the principal running `terraform apply` needs:
+Platform team grants the roles below as PIM-eligible. Apply principal activates for a 1 to 4 hour window, runs `terraform apply` (typically 10 to 20 minutes), activations auto-expire. Clean audit trail, no standing privilege.
 
-- **Owner** or **User Access Administrator** at the deployment scope (subscription for subscription-level, management group for tenant-level)
-- **Application Administrator** in Entra ID (to create the AD application)
-- Permission to write diagnostic settings on every monitored subscription (Contributor or a custom role with `Microsoft.Insights/diagnosticSettings/write`)
+| Role | Scope | Granted as |
+|---|---|---|
+| Owner (or UAA + Contributor) | Parent management group | PIM-eligible |
+| Contributor + User Access Administrator | Scanning subscription | PIM-eligible |
+| Application Administrator | Entra ID directory | PIM-eligible |
 
-Running Terraform as a service principal instead of a user: the same RBAC at the deployment scope, plus `Microsoft.Graph/Application.ReadWrite.OwnedBy` API permission in Entra ID instead of Application Administrator.
+### Path A tenant-level: deployment-time permissions
 
-**Path B (Console wizard, Automated method)**: the wizard SP needs:
+What the apply principal needs at apply time, broken down by workload:
 
-- **Owner** on the target subscription (for resource creation + role assignment)
+| Workload | Permission | Scope | Purpose |
+|---|---|---|---|
+| Core | User Access Administrator | Parent management group | Grant Reader to new AD app at MG |
+| Core | Contributor | Deployment subscription | Create Storage Account + Event Hub for Activity Log sink |
+| Core | `Microsoft.Insights/diagnosticSettings/write` | Management group | Create Activity Log diag setting on every child sub |
+| Core | Application Administrator | Entra ID | Create AD application |
+| DSPM | Contributor | Scanning subscription | Create Key Vault, Storage Account, Container App Job |
+| DSPM | User Access Administrator | Parent management group | Grant Storage Blob Data Reader to DSPM SP across monitored subs |
+| DSPM | User Access Administrator | Scanning subscription | Managed identity role assignment for Container App Job |
+| DSPM | Application Administrator | Entra ID | Create DSPM AD application |
+| Agentless | Contributor | Scanning subscription | Create VNet, NAT Gateway + Public IP, Storage, Key Vault, orchestrator Container App Job |
+| Agentless | User Access Administrator | Parent management group | Grant Reader + disk snapshot action to agentless SP |
+| Agentless | Application Administrator | Entra ID | Create agentless AD application |
+| Agentless | Azure Policy exemption | Scanning subscription | Allow public IP on NAT Gateway, if Azure Policy denies public IPs tenant-wide |
+
+Running Terraform as a service principal instead of a user: same RBAC at every scope, plus `Microsoft.Graph/Application.ReadWrite.OwnedBy` Graph API permission in Entra ID instead of Application Administrator.
+
+Subscription-level deployments are a strict subset: replace Management group with the target subscription throughout, and drop the management-group-scoped diagnostic settings write (a per-subscription Contributor covers it).
+
+### Path A tenant-level: granular alternative
+
+If their platform team objects to Owner at the management group even via PIM:
+
+| Role | Scope | Replaces |
+|---|---|---|
+| Reader + User Access Administrator + custom role with `Microsoft.Insights/diagnosticSettings/write` | Management group | Owner at MG |
+| Contributor | Deployment subscription | (no change) |
+| Contributor + User Access Administrator | Scanning subscription | (no change) |
+| Application Administrator (or `Application.ReadWrite.OwnedBy` Graph API) | Entra ID | (no change) |
+
+Same outcome, narrower verbs. Useful when their security team's instinct is "no Owner role assignments".
+
+### Path B (Console wizard, Automated method): deployment-time
+
+The wizard SP needs:
+
+- **Owner** on the target subscription (resource creation + role assignment)
 - **Application Administrator** + **Privileged Role Administrator** in Entra ID, assigned to the SP itself
 
-The human assigning those directory roles to the SP must hold **Privileged Role Administrator** or **Global Administrator** in the deployment tenant. In corporate environments this is typically restricted to a small IT admin team. Coordinate ahead of time or use Path A.
-
-For agentless workload scanning specifically, see the sibling guide's <a href="https://github.com/andrewbearsley/forticnapp-azure-agentless-workload-scanning-guide#iam-permissions" target="_blank">IAM Permissions section</a>.
+The human assigning those directory roles must hold Privileged Role Administrator or Global Administrator in the deployment tenant. In corporate environments this is typically restricted to a small IT admin team. Coordinate ahead of time or use Path A.
 
 ### Runtime permissions
 
-The created Azure AD application is granted:
+The created service principals are granted read-class access only. No write permissions on monitored resources.
 
-- **Reader** at the tenant management group (tenant-level) or subscription (subscription-level), for Config reads
-- **Reader** on the Activity Log sink resource, for event pulls
-- Additional data-plane reads on Storage Accounts if DSPM is enabled
-- No write permissions on monitored resources
+| Workload | Permission | Scope |
+|---|---|---|
+| Core | Reader | Management group (cascades to all child subs) |
+| Core | Reader | Activity Log Event Hub / Storage Account |
+| DSPM | Storage Blob Data Reader | Management group (cascades to monitored subs) |
+| DSPM | Key Vault Crypto User | Scanning sub Key Vault |
+| Agentless | Reader | Management group |
+| Agentless | `Microsoft.Compute/disks/beginGetAccess/action` | Monitored subscriptions |
+| Agentless | Write to scanning storage | Scanning subscription |
 
-For Azure Policy DENY environments (common in ALZ deployments, e.g. DENY on public IP creation), the only resource type that typically needs an exemption is the **NAT Gateway public IP** in the agentless scanning subscription. The exemption can be scoped to the scanning subscription only. All other steps operate within standard Reader permissions and do not create public-facing resources.
+For Azure Policy DENY environments (common in ALZ deployments, e.g. DENY on public IP creation), the only resource type that typically needs an exemption is the NAT Gateway public IP in the agentless scanning subscription. The exemption can be scoped to the scanning subscription only.
+
+For agentless workload scanning specifically, see the sibling guide's <a href="https://github.com/andrewbearsley/forticnapp-azure-agentless-workload-scanning-guide#iam-permissions" target="_blank">IAM Permissions section</a>.
 
 ---
 
