@@ -56,6 +56,22 @@ Confirm what you can do yourself versus what needs the platform team.
 - Owner on the target subscription
 - Application Administrator + Privileged Role Administrator on the SP in Entra ID
 
+#### Storage Account network rules
+
+The Activity Log Storage Account is created with public network access locked down by default. The machine running `terraform apply` needs its public IP in the allowlist so the management-plane calls can reach the Storage Account during apply. FortiCNAPP itself reads from the Event Hub, not the Storage Account, so no FortiCNAPP IPs are needed.
+
+Get the apply machine's public IP with `curl -s ifconfig.me` and add it to `storage_account_network_rule_ip_rules` in `terraform.tfvars`.
+
+| Scenario | What to put |
+|---|---|
+| Engineer's laptop | Output of `curl -s ifconfig.me` |
+| Multiple engineers might run apply | Each engineer's public IP as a separate list entry |
+| Corporate NAT with stable egress | The shared NAT egress IP (covers everyone behind it) |
+| CI/CD pipeline | The pipeline agent's egress IP (use a self-hosted runner with a known IP, or documented IP ranges for hosted agents) |
+| No firewall (lower posture) | Set to `[]` and flip `use_storage_account_network_rules = false` in `main.tf` |
+
+For private endpoint deployments, modify `main.tf` to set `use_storage_account_network_rules = false` and add an `azurerm_private_endpoint` resource pointing at the Storage Account.
+
 ### Step 1.3: Choose your integration path
 
 | Scenario | Path |
