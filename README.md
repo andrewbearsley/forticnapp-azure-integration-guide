@@ -38,7 +38,7 @@ Azure Landing Zone (ALZ) deployments typically use **tenant-level** because new 
 | Azure tenant ID | `az account show --query tenantId -o tsv` |
 | Subscription IDs in scope | `az account list --query "[].{id:id, name:name}" -o table` |
 | Management group ID (tenant-level only) | `az account management-group list -o table` |
-| Default deployment region | Operational standard (e.g. `australiaeast`) |
+| Default deployment region | Operational standard (e.g. `australiaeast`). Used as the `location` variable for the Activity Log Storage Account + Event Hub. Without this set, the upstream module defaults to `West US 2`. |
 
 #### Permission delegation model
 

@@ -1,3 +1,4 @@
 subscription_id                       = "00000000-0000-0000-0000-000000000000"
+location                              = "australiaeast"
 storage_account_network_rule_ip_rules = ["203.0.113.10"]
 dspm_regions                          = ["australiaeast"]

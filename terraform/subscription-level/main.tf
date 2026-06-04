@@ -36,6 +36,7 @@ module "az_activity_log" {
   application_id                        = module.az_ad_application.application_id
   application_password                  = module.az_ad_application.application_password
   infrastructure_encryption_enabled     = true
+  location                              = var.location
   service_principal_id                  = module.az_ad_application.service_principal_id
   storage_account_network_rule_ip_rules = var.storage_account_network_rule_ip_rules
   use_existing_ad_application           = true

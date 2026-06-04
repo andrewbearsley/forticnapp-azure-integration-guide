@@ -1,11 +1,16 @@
 variable "subscription_id" {
   type        = string
-  description = "Azure subscription ID where Lacework deployment resources (Storage Account, Event Hub, AD application owner) are created. This is the management subscription, not the monitored scope — Config and Activity Log cover all subscriptions under the management group."
+  description = "Azure subscription ID where Lacework deployment resources (Storage Account, Event Hub, AD application owner) are created. This is the management subscription, not the monitored scope. Config and Activity Log cover all subscriptions under the management group."
 }
 
 variable "management_group_id" {
   type        = string
   description = "Azure management group ID at which the AD application is granted Reader. For the tenant root, this is the tenant ID. For a sub-tree (e.g. ALZ platform + workload management groups), use the parent group ID."
+}
+
+variable "location" {
+  type        = string
+  description = "Azure region where the Activity Log Storage Account, Event Hub, and supporting infrastructure are deployed. Must be set explicitly; the upstream module defaults to West US 2."
 }
 
 variable "storage_account_network_rule_ip_rules" {
