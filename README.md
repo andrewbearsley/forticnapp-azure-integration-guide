@@ -367,7 +367,7 @@ Reference: <a href="https://docs.fortinet.com/document/forticnapp/latest/adminis
 
 ### Pattern: Custom Webhook to Azure Event Hub
 
-If Event Hub is your standard ingest pattern (e.g. everything funnels through Event Hub on the way to Splunk, Sentinel, or a data lake), FortiCNAPP can't write to it directly. The supported approach is to expose an HTTPS shim and use FortiCNAPP's Custom Webhook channel:
+If Event Hub is your standard ingest pattern (e.g. everything funnels through Event Hub on the way to Splunk, Sentinel, or a data lake), the recommended approach is to expose an HTTPS shim and use FortiCNAPP's Custom Webhook channel:
 
 ```
 FortiCNAPP Custom Webhook  ─POST JSON─►  HTTPS shim  ─►  Azure Event Hub  ─►  downstream
