@@ -293,28 +293,40 @@ Tick **Agentless Workload Scanning** in the Step 1 wizard and provide regions + 
 
 ## Step 3: FortiGate Security Fabric Integration
 
-FortiGate integration enriches workload risk scoring with network exposure context. A workload that's reachable from the internet through the FortiGate gets a higher score than one behind allow-list-only rules, even if both have the same CVE.
+Bringing FortiGate-VMs deployed in Azure into FortiCNAPP enriches resource visibility with network exposure context: workloads reachable from the internet without a FortiGate in the path get a higher risk score than those behind one, even at the same CVE. FortiGates also show up in Resource Inventory under Next-Gen Firewall, and path analysis in the Explorer graph colours paths blue (FortiGate in path) or red (no FortiGate, exposed).
 
-### Setup
+### How it actually works
 
-This is a two-sided configuration:
+There's no separate "add FortiGate" connector to configure in the FortiCNAPP console. The integration is passive on the FortiCNAPP side:
 
-#### FortiGate side
+- The **Azure Config integration** from Step 1 already inventories every Azure resource in scope, including FortiGate-VMs
+- FortiCNAPP recognises FortiGate-VMs as firewalls and uses the Azure network topology (NSGs, route tables, public IPs, load balancers) to determine whether a given workload's path to the internet traverses one
+- No API token, no Fabric Connector configuration on the FortiCNAPP side
 
-- Confirm FortiGate firmware version meets the minimum for FortiCNAPP integration
-- Enable Fabric Connector or API access for FortiCNAPP to query FortiGate state
-- The integration can run direct (FortiCNAPP to FortiGate) or via FortiAnalyzer / FortiManager as intermediary, depending on the deployment
+The work to do is on the FortiGate / Azure side: confirm the FortiGate-VMs are deployed in a pattern FortiCNAPP recognises.
 
-#### FortiCNAPP side
+### Supported Azure deployment patterns
 
-1. Navigate to **Settings > Integrations**
-2. Add a **FortiGate** integration
-3. Provide FortiGate management URL and authentication credentials
-4. Confirm reachability (FortiCNAPP needs outbound access to the FortiGate management interface)
+| Pattern | Notes |
+|---|---|
+| **Single instance** | Standalone FortiGate-VM |
+| **Fabric Connector Failover (SDN)** | Active/Passive HA pair using the Fortinet Fabric Connector for Azure |
+| **Standard Load Balancer (SLB)** | Active/Passive HA pair fronted by an Azure Standard Load Balancer |
 
-Once both sides are connected, FortiCNAPP automatically incorporates FortiGate findings into the unified risk score. No per-workload action is needed.
+If your FortiGates run in HA, they need to be in one of the two HA patterns specifically. Other HA approaches won't be picked up correctly by the path analysis. Your network team owns the FortiGate-side configuration; see the <a href="https://docs.fortinet.com/document/fortigate/latest/administration-guide" target="_blank">FortiOS Administration Guide</a> for the FortiGate-side deployment details.
 
-Reference: <a href="https://docs.fortinet.com/document/forticnapp/latest/administration-guide" target="_blank">FortiCNAPP Administration Guide: Fortinet integrations</a>
+### Setup checklist
+
+This usually means coordinating with the network team rather than configuring FortiCNAPP directly:
+
+1. **Confirm deployment pattern** with the network team: single instance, Fabric Connector Failover (SDN), or SLB HA
+2. **Confirm Config integration is healthy** (Step 1): the scanning AD application has Reader at the management group, and FortiCNAPP has enumerated subscriptions containing the FortiGates
+3. **Verify discovery in the console**: navigate to **Resource Inventory**, filter by **Next-Gen Firewall** category (or search for FortiGate). The FortiGate-VMs should appear within an hour of the Config integration enumerating their subscription
+4. **Check path analysis**: in the Explorer graph, look at a workload that sits behind a FortiGate. The path to the internet should colour blue. If it colours red despite the FortiGate being present, the deployment pattern isn't one of the three supported shapes
+
+If the FortiGates don't appear in Resource Inventory at all, that points back at the Config integration (subscription not in scope, or AD app Reader role hasn't propagated). If they appear but path analysis still colours red, that's the deployment-pattern conversation with the network team.
+
+Reference: <a href="https://docs.fortinet.com/document/forticnapp/26.2.0/administration-guide/639260/fortigate" target="_blank">FortiCNAPP Administration Guide: FortiGate Security Fabric integration</a>
 
 ---
 
