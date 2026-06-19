@@ -332,24 +332,64 @@ Reference: <a href="https://docs.fortinet.com/document/forticnapp/26.2.0/adminis
 
 ## Step 4: Alert Channels
 
-Alert channels forward FortiCNAPP-generated alerts to downstream tools (Splunk, ServiceNow, Microsoft Teams, email, generic webhooks). Common pattern for SIEM forwarding: route to Splunk via an Azure Event Hub.
+Alert channels forward FortiCNAPP-generated alerts to downstream tools. Alert rules bind channels to alert sources by severity threshold, integration, or resource group, so the same alert can fan out to multiple destinations (e.g. high-severity to PagerDuty + email + Splunk, everything else to Splunk only).
+
+### Native channels
+
+FortiCNAPP ships dedicated integrations for these destinations. No custom plumbing needed:
+
+| Category | Channels |
+|---|---|
+| SIEM | Splunk (direct via HEC), Sumo Logic, Elastic / ELK Stack, IBM QRadar, FortiSIEM |
+| Cloud-native eventing | Amazon EventBridge, Amazon Security Lake, AWS Security Hub, Google Cloud Pub/Sub, Google Eventarc |
+| Chat | Slack, Microsoft Teams, Cisco Webex Teams |
+| Incident / on-call | PagerDuty, Opsgenie, VictorOps (Splunk On-Call) |
+| ITSM / ticketing | ServiceNow, Jira, Azure DevOps |
+| Observability | Datadog, New Relic |
+| SOAR | FortiSOAR |
+| Generic | Email, Custom webhook |
+
+**Notable for Azure shops**: there is no native Azure Event Hub channel. To land alerts in Event Hub, use the Custom Webhook pattern below.
 
 ### Setup
 
 1. Navigate to **Settings > Notifications > Alert Channels**
 2. Click **Add New** and choose the target channel type
-3. Provide endpoint details (Splunk HEC URL + token, Event Hub connection string, webhook URL, etc.)
+3. Provide endpoint details (Splunk HEC URL + token, webhook URL, etc.)
 4. Test the channel
-5. Navigate to **Settings > Notifications > Alert Rules** and bind the channel to alert rules, typically by severity threshold, integration source, or resource group
+5. Navigate to **Settings > Notifications > Alert Rules** and bind the channel to alert rules
 
-Splunk via Event Hub example:
+### Pattern: Splunk direct via HEC
 
-- Create the Event Hub namespace in your customer-owned Azure subscription
-- Create a shared access policy with `Send` permission
-- In FortiCNAPP, configure an **Azure Event Hub** alert channel using the namespace + entity path + connection string
-- Splunk's Azure Event Hubs input pulls from the same Event Hub
+Cleanest path for Splunk forwarding. Create a Splunk HEC token, paste it into FortiCNAPP's Splunk alert channel along with the HEC URL. Done.
 
-Reference: <a href="https://docs.fortinet.com/document/forticnapp/latest/administration-guide" target="_blank">FortiCNAPP Administration Guide: Alert Channels</a>
+Reference: <a href="https://docs.fortinet.com/document/forticnapp/latest/administration-guide/440161/splunk-alert-channel" target="_blank">Splunk alert channel</a>
+
+### Pattern: Custom Webhook to Azure Event Hub
+
+If Event Hub is your standard ingest pattern (e.g. everything funnels through Event Hub on the way to Splunk, Sentinel, or a data lake), FortiCNAPP can't write to it directly. The supported approach is to expose an HTTPS shim and use FortiCNAPP's Custom Webhook channel:
+
+```
+FortiCNAPP Custom Webhook  ─POST JSON─►  HTTPS shim  ─►  Azure Event Hub  ─►  downstream
+```
+
+The HTTPS shim is usually an Azure Function (HTTP-triggered) that validates the inbound POST (function key or shared secret in the header) and forwards the payload to Event Hub via a Managed Identity with the `Azure Event Hubs Data Sender` role. Logic Apps and APIM work too if either is already in the stack.
+
+What the Azure side needs:
+
+- Event Hub namespace + Event Hub (`azurerm_eventhub_namespace`, `azurerm_eventhub`)
+- Shared access policy with `Send` permission, or a Managed Identity grant with `Azure Event Hubs Data Sender`
+- HTTPS shim (Function App / Logic App / APIM) with the inbound URL and a shared secret
+- Optional `azurerm_eventhub_namespace_network_rules` to lock the namespace down to known sources
+
+Then in FortiCNAPP:
+
+1. **Settings > Notifications > Alert Channels > Add New > Custom Webhook**
+2. Paste the shim's HTTPS URL
+3. Add the shared secret as a custom header (commonly `X-Webhook-Secret`)
+4. Test
+
+Reference: <a href="https://docs.fortinet.com/document/forticnapp/latest/administration-guide/659277/datadog-alert-channel" target="_blank">FortiCNAPP Administration Guide: Alert Channels overview</a>
 
 ---
 
