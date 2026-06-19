@@ -389,6 +389,8 @@ Then in FortiCNAPP:
 3. Add the shared secret as a custom header (commonly `X-Webhook-Secret`)
 4. Test
 
+A turnkey implementation of this pattern (Terraform + Python Azure Function) is in the sibling repo: <a href="https://github.com/andrewbearsley/forticnapp-azure-eventhub-webhook-shim" target="_blank">forticnapp-azure-eventhub-webhook-shim</a>. Provisions the Event Hub Namespace, Hub, Storage Account, and Linux Function App with a System-Assigned Managed Identity granted `Azure Event Hubs Data Sender`, and ships the minimal Function code to validate the inbound POST and forward it to Event Hub.
+
 Reference: <a href="https://docs.fortinet.com/document/forticnapp/latest/administration-guide/659277/datadog-alert-channel" target="_blank">FortiCNAPP Administration Guide: Alert Channels overview</a>
 
 ---
