@@ -367,29 +367,29 @@ Reference: <a href="https://docs.fortinet.com/document/forticnapp/latest/adminis
 
 ### Pattern: Custom Webhook to Azure Event Hub
 
-If Event Hub is your standard ingest pattern (e.g. everything funnels through Event Hub on the way to Splunk, Sentinel, or a data lake), the recommended approach is to expose an HTTPS shim and use FortiCNAPP's Custom Webhook channel:
+If Event Hub is your standard ingest pattern (e.g. everything funnels through Event Hub on the way to Splunk, Sentinel, or a data lake), the recommended approach is to expose an HTTPS forwarder and use FortiCNAPP's Custom Webhook channel. The flow is:
 
-```
-FortiCNAPP Custom Webhook  ─POST JSON─►  HTTPS shim  ─►  Azure Event Hub  ─►  downstream
-```
+1. FortiCNAPP Custom Webhook posts the alert JSON over HTTPS to a forwarder
+2. The forwarder validates the request and writes the body to Azure Event Hub
+3. Downstream tools (Splunk, Sentinel, a data lake) read from the same Event Hub
 
-The HTTPS shim is usually an Azure Function (HTTP-triggered) that validates the inbound POST (function key or shared secret in the header) and forwards the payload to Event Hub via a Managed Identity with the `Azure Event Hubs Data Sender` role. Logic Apps and APIM work too if either is already in the stack.
+The forwarder is usually an Azure Function (HTTP-triggered) that validates the inbound POST (function key or shared secret in the header) and forwards the payload to Event Hub via a Managed Identity with the `Azure Event Hubs Data Sender` role. Logic Apps and APIM work too if either is already in the stack.
 
 What the Azure side needs:
 
 - Event Hub namespace + Event Hub (`azurerm_eventhub_namespace`, `azurerm_eventhub`)
 - Shared access policy with `Send` permission, or a Managed Identity grant with `Azure Event Hubs Data Sender`
-- HTTPS shim (Function App / Logic App / APIM) with the inbound URL and a shared secret
+- HTTPS forwarder (Function App / Logic App / APIM) with the inbound URL and a shared secret
 - Optional `azurerm_eventhub_namespace_network_rules` to lock the namespace down to known sources
 
 Then in FortiCNAPP:
 
 1. **Settings > Notifications > Alert Channels > Add New > Custom Webhook**
-2. Paste the shim's HTTPS URL
+2. Paste the forwarder's HTTPS URL
 3. Add the shared secret as a custom header (commonly `X-Webhook-Secret`)
 4. Test
 
-A turnkey implementation of this pattern (Terraform + Python Azure Function) is in the sibling repo: <a href="https://github.com/andrewbearsley/forticnapp-azure-eventhub-webhook-shim" target="_blank">forticnapp-azure-eventhub-webhook-shim</a>. Provisions the Event Hub Namespace, Hub, Storage Account, and Linux Function App with a System-Assigned Managed Identity granted `Azure Event Hubs Data Sender`, and ships the minimal Function code to validate the inbound POST and forward it to Event Hub.
+A turnkey implementation of this pattern (Terraform + Python Azure Function) is in the sibling repo: <a href="https://github.com/andrewbearsley/forticnapp-azure-eventhub-webhook-forwarder" target="_blank">forticnapp-azure-eventhub-webhook-forwarder</a>. Provisions the Event Hub Namespace, Hub, Storage Account, and Linux Function App with a System-Assigned Managed Identity granted `Azure Event Hubs Data Sender`, and ships the minimal Function code to validate the inbound POST and forward it to Event Hub.
 
 Reference: <a href="https://docs.fortinet.com/document/forticnapp/latest/administration-guide/659277/datadog-alert-channel" target="_blank">FortiCNAPP Administration Guide: Alert Channels overview</a>
 
